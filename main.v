@@ -46,7 +46,13 @@ module main(clk,rst);
     wire [31:0] lui_out;
     wire lui_sel;
     wire [31:0] final_alu_im;
-    
+    wire is_float,fpr_we;
+    wire [31:0] fpu_out;
+    wire [31:0] fpu_a,fpu_b;
+    wire [3:0] fpu_control_out;
+    wire fpr_we;
+    wire [31:0] fpu_in;
+    wire [31:0] final_wite_data=is_float?fpu_out:write_data_mux_out;
 
     always @(posedge clk or posedge rst) begin
         if (rst)
@@ -57,7 +63,7 @@ module main(clk,rst);
     assign jump_address = jump_return ? reg_out1:{pc[31:26], instruction[25:0]};
     instruction_memory im(.write_address(0),.write_data(0),.read_address(pc[8:0]),.clk(clk),.we(0),.instr_out(instruction));
     data_memory dm(.write_address(alu_result[8:0]),.write_data(reg_out2),.read_address(alu_result[8:0]),.clk(clk),.we(mem_we),.data_out(read_mem_data));
-    registers reg_file(.read_register1(instruction[25:21]),.read_register2(instruction[20:16]),.write_register(final_write_reg),.write_data(write_data_mux_out),.reg_write(reg_we),.read_data_out1(reg_out1),.read_data_out2(reg_out2),.clk(clk));
+    registers reg_file(.read_register1(instruction[25:21]),.read_register2(instruction[20:16]),.write_register(final_write_reg),.write_data(final_wite_data),.reg_write(reg_we),.read_data_out1(reg_out1),.read_data_out2(reg_out2),.clk(clk));
     program_counter prog_counter(clk,next_pc,pc,rst);
     adder1 a1(pc,adder1_out,rst);
     adder a2(adder1_out,sign_out,adder_out);
@@ -76,12 +82,7 @@ module main(clk,rst);
     lui_mux lui_m(lui_sel,lui_out,alu_input,final_alu_im);
 
     //floating point unit
-    wire is_float,fpr_we;
-    wire [31:0] fpu_out;
-    wire [31:0] fpu_a,fpu_b;
-    wire [3:0] fpu_control_out;
-    wire fpr_we;
-    wire [31:0] fpu_in;
+    
     /* module fp_registers(
     input [4:0] read_reg1, read_reg2, write_reg,
     input [31:0] write_data,
